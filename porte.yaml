@@ -1,0 +1,101 @@
+esphome:
+  name: porte_poulailler
+  platform: ESP8266
+  board: d1_mini_lite
+
+web_server:
+  port: 80
+
+wifi:
+  ssid: !secret ssid
+  password: !secret password
+
+  ap:
+    ssid: "Porte Poulailler"
+    password: !secret passwordap
+
+captive_portal:
+
+# Enable logging
+logger:
+  level: VERBOSE
+
+# Enable Home Assistant API
+api:
+  services:
+    - service: control_stepper
+      variables:
+        target: int
+      then:
+        - stepper.set_target:
+            id: my_stepper
+            target: !lambda 'return target;'
+
+  password: !secret passwordother
+
+ota:
+  password: !secret passwordother
+
+#IN1 = 16
+#IN2 = 12
+#IN3 = 15
+#IN4 = 01
+
+stepper:
+  - platform: uln2003 
+    id: my_stepper
+    pin_a: D8
+    pin_b: D6
+    pin_c: D7
+    pin_d: D5
+    max_speed: 500 steps/s
+    sleep_when_done: true
+
+    #Optional:
+    acceleration: inf
+    deceleration: inf
+
+button:
+  - platform: template
+    name: "Poulailler - Fermer porte"
+    on_press:
+      - stepper.set_target:
+            id: my_stepper
+            target: 5000
+
+  - platform: template
+    name: "Poulailler - Ouvrir porte"
+    on_press:
+      - stepper.set_target:
+            id: my_stepper
+            target: -5000 
+            
+binary_sensor:
+  - platform: gpio
+    pin:
+      number: D3
+      mode: INPUT_PULLUP
+      inverted: True
+    name: "Porte fermée"
+    #filters:
+      #- delayed_on: 100ms
+      #- delayed_off: 100ms
+    on_press:
+      then:
+        - stepper.set_target:
+           id: my_stepper
+           target: !lambda return id(my_stepper).current_position;  
+  - platform: gpio
+    pin:
+      number: D1
+      mode: INPUT_PULLUP
+      inverted: True
+    name: "Porte ouverte"
+    #filters:
+      #- delayed_on: 100ms
+      #- delayed_off: 100ms
+    on_press:
+      then:
+        - stepper.set_target:
+           id: my_stepper
+           target: !lambda return id(my_stepper).current_position;  
